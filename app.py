@@ -96,9 +96,7 @@ st.write(original_data.head())
 # ==============================
 st.subheader("📈 Data Distribution")
 
-fig, ax = plt.subplots()
-original_data.hist(ax=ax)
-st.pyplot(fig)
+
 
 # ==============================
 # CORRELATION
