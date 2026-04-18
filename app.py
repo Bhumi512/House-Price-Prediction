@@ -2,7 +2,6 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 
-
 # ==============================
 # PAGE CONFIG
 # ==============================
@@ -22,26 +21,32 @@ data = pd.read_csv("dataset.csv")
 # Drop unnecessary columns
 data = data.drop(['Unnamed: 0','driveway','recroom','fullbase','airco','prefarea','gashw'], axis=1)
 
-# Save original data for graphs
+# Save original data
 original_data = data.copy()
+
+# ==============================
+# SEPARATE FEATURES & TARGET
+# ==============================
+target_col = data.columns[0]   # price column
+feature_cols = data.columns[1:]
 
 # Normalize
 mean = data.mean()
 std = data.std()
-data = (data - mean) / std
+
+data_norm = (data - mean) / std
 
 # Convert to array
-data = np.array(data)
+data_np = np.array(data_norm)
 
-# Split features & target
-Y = data[:, 0:1]
-X = data[:, 1:]
+Y = data_np[:, 0:1]
+X = data_np[:, 1:]
 
 # Add bias
 ones = np.ones((X.shape[0], 1))
 X = np.concatenate((ones, X), axis=1)
 
-# Train model (Normal Equation)
+# Train model
 theta = np.linalg.inv(X.T @ X) @ X.T @ Y
 
 st.success("✅ Model Trained Successfully!")
@@ -57,29 +62,26 @@ bath = st.sidebar.slider("Bathrooms", 1, 4, 2)
 stories = st.sidebar.slider("Stories", 1, 3, 2)
 garage = st.sidebar.slider("Garage", 0, 3, 1)
 
-user_input = [lot, bed, bath, stories, garage]
+user_input = np.array([lot, bed, bath, stories, garage])
 
 # ==============================
 # PREDICTION
 # ==============================
 if st.sidebar.button("Predict Price"):
 
-    user_input = np.array(user_input)
-
-    # Normalize input
-    user_input = (user_input - mean[1:].values) / std[1:].values
+    # Normalize input (ONLY features)
+    user_input_norm = (user_input - mean[feature_cols].values) / std[feature_cols].values
 
     # Add bias
-    user_input = np.insert(user_input, 0, 1)
-    user_input = user_input.reshape(1, -1)
+    user_input_norm = np.insert(user_input_norm, 0, 1)
+    user_input_norm = user_input_norm.reshape(1, -1)
 
     # Predict
-    prediction = user_input @ theta
+    prediction = user_input_norm @ theta
 
-    # Denormalize
-    predicted_price = prediction[0][0] * std[0] + mean[0]
+    # Denormalize using TARGET column
+    predicted_price = prediction[0][0] * std[target_col] + mean[target_col]
 
-    # Safety fix
     predicted_price = max(0, predicted_price)
 
     st.subheader("💰 Predicted Price")
@@ -90,13 +92,6 @@ if st.sidebar.button("Predict Price"):
 # ==============================
 st.subheader("📊 Dataset Preview")
 st.write(original_data.head())
-
-# ==============================
-# GRAPHS
-# ==============================
-st.subheader("📈 Data Distribution")
-
-
 
 # ==============================
 # CORRELATION
